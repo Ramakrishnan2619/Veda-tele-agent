@@ -8,3 +8,8 @@ export const API_BASE_URL =
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:8080'
         : '');
+
+export const MOCK_MODE =
+    window.location.search.includes('mock=true') ||
+    (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.__ENV__?.API_BASE_URL);
+

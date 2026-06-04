@@ -3,7 +3,7 @@
  * @description Firestore-backed authentication using backend JWT.
  */
 
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, MOCK_MODE } from "./config.js";
 
 const STORAGE_TOKEN_KEY = 'veda_auth_token';
 const STORAGE_USER_KEY = 'veda_auth_user';
@@ -18,6 +18,14 @@ export const state = {
 let accessToken = null;
 
 const authFetch = async (endpoint, options = {}) => {
+    if (MOCK_MODE) {
+        if (endpoint === '/api/auth/me') {
+            const storedUser = sessionStorage.getItem(STORAGE_USER_KEY);
+            return { user: storedUser ? JSON.parse(storedUser) : { email: 'demo@veda.ai', admin: false, display_name: 'Demo User' } };
+        }
+        return {};
+    }
+
     const headers = {
         'Content-Type': 'application/json',
         ...(options.headers || {})
@@ -57,6 +65,12 @@ const clearSession = () => {
 };
 
 export const register = async ({ email, password, displayName }) => {
+    if (MOCK_MODE) {
+        const dummyUser = { email, admin: email.toLowerCase().includes('admin'), display_name: displayName || 'Demo User' };
+        persistSession('mock-token-xyz', dummyUser);
+        return dummyUser;
+    }
+
     const data = await authFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
@@ -71,6 +85,12 @@ export const register = async ({ email, password, displayName }) => {
 };
 
 export const login = async ({ email, password }) => {
+    if (MOCK_MODE) {
+        const dummyUser = { email, admin: email.toLowerCase().includes('admin'), display_name: 'Demo User' };
+        persistSession('mock-token-xyz', dummyUser);
+        return dummyUser;
+    }
+
     const data = await authFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
@@ -81,6 +101,12 @@ export const login = async ({ email, password }) => {
 };
 
 export const loginWithGoogleCredential = async (idToken) => {
+    if (MOCK_MODE) {
+        const dummyUser = { email: 'googleuser@demo.com', admin: false, display_name: 'Google Demo User' };
+        persistSession('mock-token-xyz', dummyUser);
+        return dummyUser;
+    }
+
     const data = await authFetch('/api/auth/google', {
         method: 'POST',
         body: JSON.stringify({ id_token: idToken })
@@ -110,9 +136,16 @@ export const initAuth = async (callback) => {
         }
 
         accessToken = storedToken;
-        const data = await authFetch('/api/auth/me', { method: 'GET' });
+        
+        let user;
+        if (MOCK_MODE) {
+            user = JSON.parse(storedUser);
+        } else {
+            const data = await authFetch('/api/auth/me', { method: 'GET' });
+            user = data.user;
+        }
 
-        persistSession(storedToken, data.user);
+        persistSession(accessToken, user);
         state.initialized = true;
         callback(state.user);
     } catch (_err) {
