@@ -4,6 +4,7 @@
 
 import { login, register, loginWithGoogleCredential } from "../auth.js";
 import { navigate } from "../router.js";
+import { MOCK_MODE } from "../config.js";
 
 export const renderLanding = async (container) => {
     container.innerHTML = `
@@ -80,7 +81,25 @@ export const renderLanding = async (container) => {
     });
 
     const googleClientId = window.__ENV__?.GOOGLE_OAUTH_CLIENT_ID;
-    if (window.google?.accounts?.id && googleClientId) {
+    if (MOCK_MODE) {
+        const btnContainer = document.getElementById('googleBtnContainer');
+        if (btnContainer) {
+            btnContainer.innerHTML = `
+                <button id="mockGoogleBtn" class="btn btn-outline flex items-center justify-center gap-md" style="width: 100%; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 1rem; border: 1px solid var(--color-border); background: rgba(255, 255, 255, 0.02); cursor: pointer; color: var(--color-text);">
+                    <img src="https://lh3.googleusercontent.com/COxitqgJr1sKmZGs2FwcSp7thV74QP4n6DpgUGYF5f-zQ1gQF9p6OcFtVyc5paJFunc1tG-251ga=s120" alt="Google" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"/>
+                    Sign in with Google
+                </button>
+            `;
+            document.getElementById('mockGoogleBtn').addEventListener('click', async () => {
+                try {
+                    await loginWithGoogleCredential('mock-google-token');
+                    navigate('/dashboard');
+                } catch (err) {
+                    alert(`Google sign-in failed: ${err.message}`);
+                }
+            });
+        }
+    } else if (window.google?.accounts?.id && googleClientId) {
         window.google.accounts.id.initialize({
             client_id: googleClientId,
             callback: async (response) => {
